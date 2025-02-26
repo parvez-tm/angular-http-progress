@@ -5,41 +5,53 @@ import { Observable } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { progressInterceptor } from './progress.interceptor';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 
 
 @Component({
   selector: 'app-root',
-  imports:[CommonModule],
+  imports: [CommonModule,ReactiveFormsModule],
   template: `
   @for( d of name;track $index){
     <h1>{{ d.name }}!</h1>
   }
+
+    <input type='file' (change)="handleFileInput($event)"/>
+    <input type='submit' value='Submit' (click)='postData()'/>
   `,
 })
 export class App {
-  name:any[] = [];
-  constructor(private http: HttpClient) {}
-  ngOnInit(){
+  name: any[] = [];
+  downloadData: any
+  fileToUpload:any
+  constructor(private http: HttpClient) { 
+   
+  }
+  handleFileInput(event: any) {
+    this.fileToUpload = event.target.files[0];
+}
+
+  ngOnInit() {
     this.loadDataWithInterceptor()
-    this.getData().subscribe({
-      next: (data)=>{
-        console.log(data);
-        
-      }
+    // this.getData().subscribe({
+    //   next: (data) => {
+    //     console.log(data);
+
+    //   }
+    // });
+  }
+
+  // This will trigger the interceptor automatically and this will track the data loading
+  loadDataWithInterceptor(): void {
+    this.http.get('https://jsonplaceholder.typicode.com/users').subscribe({
+      next: (data: any) => this.name = data,
+      error: (error) => console.error(error)
     });
   }
 
-    // This will trigger the interceptor automatically and this will track the data loading
-    loadDataWithInterceptor(): void {
-      this.http.get('https://jsonplaceholder.typicode.com/users').subscribe({
-        next: (data:any) => this.name = data,
-        error: (error) => console.error(error)
-      });
-    }
-
   //For Download and Upload Kind of operation and not for api data loading
   getData(): Observable<any> {
-    return this.http.get('https://jsonplaceholder.typicode.com/users', {
+    return this.http.get('https://picsum.photos/400/400', {
       observe: 'events',
       reportProgress: true,
     }).pipe(
@@ -55,6 +67,7 @@ export class App {
             if (event.total) {
               const progress = Math.round((100 * event.loaded) / event.total);
               console.log(`Download Progress: ${progress}%`);
+              this.downloadData = `${progress}%`
             }
             break;
           case HttpEventType.Response:
@@ -65,6 +78,33 @@ export class App {
       catchError(error => {
         console.error('Request failed', error);
         throw error; // Re-throw the error so that the component can handle it
+      })
+    );
+  }
+
+  postData(){
+    const formData = new FormData();
+    formData.append('file', this.fileToUpload);
+
+    this.http.post('https://api.escuelajs.co/api/v1/files/upload',formData).pipe(
+      map((event: any) => {
+        switch (event.type) {
+          case HttpEventType.UploadProgress:
+            // Track upload progress (event.loaded and event.total)
+            if (event.total) {
+              const progress = Math.round((100 * event.loaded) / event.total);
+              return { progress }; // Return the progress
+            }
+            break;
+          case HttpEventType.Response:
+            // Once the upload completes, return the response
+            return { progress: 100, response: event.body }; // Return 100% progress and response
+        }
+        return { progress: 0 }; // Default to 0% if no progress event
+      }),
+      catchError(error => {
+        console.error('Error uploading file:', error);
+        throw error;
       })
     );
   }
