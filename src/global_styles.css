@@ -1,1 +1,15 @@
 /* Add application styles & imports to this file! */
+
+@import 'nprogress/nprogress.css';
+
+#nprogress .bar {
+    background: #FF0000 !important; 
+  }
+  
+  #nprogress .peg {
+    box-shadow: 0 0 10px #FF0000, 0 0 5px #FF0000;
+  }
+  
+  #nprogress .spinner-icon {
+    display: none; /* Hide spinner if you don't want it*/
+  }
