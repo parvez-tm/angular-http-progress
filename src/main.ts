@@ -1,4 +1,4 @@
-import { HttpClient, HttpEventType, HttpHeaders, HttpResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpHeaders, HttpRequest, HttpResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
@@ -6,6 +6,7 @@ import { catchError, map, tap } from 'rxjs/operators';
 import { progressInterceptor } from './progress.interceptor';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { UploadprogressService } from './uploadprogress.service';
 
 
 @Component({
@@ -24,7 +25,7 @@ export class App {
   name: any[] = [];
   downloadData: any
   fileToUpload:any
-  constructor(private http: HttpClient) { 
+  constructor(private http: HttpClient, private upload: UploadprogressService) { 
    
   }
   handleFileInput(event: any) {
@@ -86,27 +87,12 @@ export class App {
     const formData = new FormData();
     formData.append('file', this.fileToUpload);
 
-    this.http.post('https://api.escuelajs.co/api/v1/files/upload',formData).pipe(
-      map((event: any) => {
-        switch (event.type) {
-          case HttpEventType.UploadProgress:
-            // Track upload progress (event.loaded and event.total)
-            if (event.total) {
-              const progress = Math.round((100 * event.loaded) / event.total);
-              return { progress }; // Return the progress
-            }
-            break;
-          case HttpEventType.Response:
-            // Once the upload completes, return the response
-            return { progress: 100, response: event.body }; // Return 100% progress and response
-        }
-        return { progress: 0 }; // Default to 0% if no progress event
-      }),
-      catchError(error => {
-        console.error('Error uploading file:', error);
-        throw error;
-      })
-    );
+    const req = new HttpRequest('POST', 'https://api.escuelajs.co/api/v1/files/upload', formData, {
+      reportProgress: true
+    });
+    
+
+    this.upload.uploadFile(req,this.fileToUpload).subscribe()
   }
 
 }
