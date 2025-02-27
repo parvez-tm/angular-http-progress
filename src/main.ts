@@ -50,7 +50,7 @@ export class App {
     });
   }
 
-  //For Download and Upload Kind of operation and not for api data loading
+  //For Download operation and not for api data loading
   getData(): Observable<any> {
     return this.http.get('https://picsum.photos/400/400', {
       observe: 'events',
